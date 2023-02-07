@@ -46,4 +46,4 @@ respeitam o intervalo de disponibilidade da sala. Retorna T ou F.
 (define sched1 (Schedule 0800 1100))
 (define sched2 (Schedule 1300 1700))
 
-(if (and (isAvailable? sched1) (isAvailable? sched2)) "ok" "merda")
+(if (and (isAvailable? sched1) (isAvailable? sched2)) "ok" "deu ruim")
