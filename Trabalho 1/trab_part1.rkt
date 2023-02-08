@@ -60,143 +60,78 @@ Reserva Reserva -> boolean
 
 Recebe as duas reservas (Booking) e verifica se há conflito de horas. Para evitar conflito
 de horário, deve-se seguir as seguintes regras:
-   - o horário de início de uma reserva não pode ser menor que o horário de encerramento e
-    maior que horário de início da outra reserva ao mesmo tempo;
-
-  - o horário de encerramento de uma reserva não pode ser menor que o horário de encerramento
-    e maior que o horário de início da outra reserva ao mesmo tempo;
-
-  - os horários de início e de encerramento de uma reserva não pode ser maior e menor que os
-    horários de início e de encerramento da outra reserva ao mesmo tempo, respectivamente
-
+   
+   início-hora-1 < início-hora-2 && início-hora-2 < término-hora-1
+   início-hora-2 < início-hora-1 && início-hora-1 < término-hora-2
+   início-hora-2 == início-hora-2 && início-hora-2 != término-hora-1
+   início-minuto-2 < início-minuto-1 && (início-hora-1 == término-hora-2 || início-hora-2 == término-hora-1)
 
 Assume-se que as informações providas são corretas, ou seja,
 que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00h.
 |#
 
-(define (bookings-has-hours-conflicts? booking-1 booking-2)
+(define (bookings-has-conflicts? booking-1 booking-2)
   (or
    (and
     (<
+     (Schedule-hour (Booking-start-sched booking-1))
+     (Schedule-hour (Booking-start-sched booking-2)))
+    (<
      (Schedule-hour (Booking-start-sched booking-2))
      (Schedule-hour (Booking-end-sched booking-1)))
-    (>
-     (Schedule-hour (Booking-start-sched booking-2))
-     (Schedule-hour (Booking-start-sched booking-1)))
     )
    (and
+    (<
+     (Schedule-hour (Booking-start-sched booking-2))
+     (Schedule-hour (Booking-start-sched booking-1)))
     (<
      (Schedule-hour (Booking-start-sched booking-1))
      (Schedule-hour (Booking-end-sched booking-2)))
-    (>
-     (Schedule-hour (Booking-start-sched booking-1))
-     (Schedule-hour (Booking-start-sched booking-2)))
     )
    (and
-    (<
+    (=
      (Schedule-hour (Booking-start-sched booking-2))
      (Schedule-hour (Booking-start-sched booking-1)))
-    (>
-     (Schedule-hour (Booking-end-sched booking-2))
-     (Schedule-hour (Booking-end-sched booking-1)))
+    (not
+     (=
+      (Schedule-hour (Booking-start-sched booking-2))
+      (Schedule-hour (Booking-end-sched booking-1)))
+     ))
+   (and
+    (<
+     (Schedule-minute (Booking-start-sched booking-2))
+     (Schedule-minute (Booking-end-sched booking-1))
+     )
+    (or
+     (=
+      (Schedule-hour (Booking-start-sched booking-1))
+      (Schedule-hour (Booking-end-sched booking-2))
+      )
+     (=
+      (Schedule-hour (Booking-start-sched booking-2))
+      (Schedule-hour (Booking-end-sched booking-1))
+      )
+     )
     )
    ))
 
-;(define (bookings-has-hours-conflicts? booking-1 booking-2)
-;  (or
-;   (and
-;    (<
-;     (Schedule-hour (Booking-start-sched booking-2))
-;     (Schedule-hour (Booking-end-sched booking-1)))
-;    (>=
-;     (Schedule-hour (Booking-start-sched booking-2))
-;     (Schedule-hour (Booking-start-sched booking-1)))
-;    )
-;   (and
-;    (<=
-;     (Schedule-hour (Booking-start-sched booking-2))
-;     (Schedule-hour (Booking-start-sched booking-1)))
-;    (>
-;     (Schedule-hour (Booking-end-sched booking-2))
-;     (Schedule-hour (Booking-start-sched booking-1)))
-;    )))
-
 #| Especificação:
-Reserva Reserva -> boolean
+Reserva Reserva -> String
 
-Recebe as duas reservas (Booking) e verifica se há conflito de minutos. Para evitar conflito
-de horário, deve-se seguir as seguintes regras:
-  - o horário de início de uma reserva não pode ser menor que o horário de encerramento e
-    maior que horário de início da outra reserva ao mesmo tempo;
-
-  - o horário de encerramento de uma reserva não pode ser menor que o horário de encerramento
-    e maior que o horário de início da outra reserva ao mesmo tempo;
-
-  - os horários de início e de encerramento de uma reserva não pode ser maior e menor que os
-    horários de início e de encerramento da outra reserva ao mesmo tempo, respectivamente
-
+Recebe as duas reservas (Booking) e retorna se há ou não conflito entre os horários,
+bem como a tratativa de um formato inválido de horário. Ex.: início as 12:00 e término
+as 11:00.
 
 Assume-se que as informações providas são corretas, ou seja,
 que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00h.
 |#
-
-(define (bookings-has-minutes-conflicts? booking-1 booking-2)
-  (or
-   (and
-    (<
-     (Schedule-minute (Booking-start-sched booking-2))
-     (Schedule-minute (Booking-end-sched booking-1)))
-    (>
-     (Schedule-minute (Booking-start-sched booking-2))
-     (Schedule-minute (Booking-start-sched booking-1)))
-    )
-   (and
-    (<
-     (Schedule-minute (Booking-start-sched booking-1))
-     (Schedule-minute (Booking-end-sched booking-2)))
-    (>
-     (Schedule-minute (Booking-start-sched booking-1))
-     (Schedule-minute (Booking-start-sched booking-2)))
-    )
-   (and
-    (<
-     (Schedule-minute (Booking-start-sched booking-2))
-     (Schedule-minute (Booking-start-sched booking-1)))
-    (>
-     (Schedule-minute (Booking-end-sched booking-2))
-     (Schedule-minute (Booking-end-sched booking-1)))
-    )
-
-   ))
-
-;(define (bookings-has-minutes-conflicts? booking-1 booking-2)
-;  (or
-;   (and
-;    (<
-;     (Schedule-minute (Booking-start-sched booking-2))
-;     (Schedule-minute (Booking-end-sched booking-1)))
-;    (>
-;     (Schedule-minute (Booking-start-sched booking-2))
-;     (Schedule-minute (Booking-start-sched booking-1)))
-;    )
-;   (and
-;    (<
-;     (Schedule-minute (Booking-start-sched booking-2))
-;     (Schedule-minute (Booking-start-sched booking-1)))
-;    (>
-;     (Schedule-minute (Booking-end-sched booking-2))
-;     (Schedule-minute (Booking-start-sched booking-1)))
-;    )))
-
 
 (define (validate-bookings-schedule booking-1 booking-2)
   (if
    (and
     (is-schedule-valid? (Booking-start-sched booking-1) (Booking-end-sched booking-1))
     (is-schedule-valid? (Booking-start-sched booking-2) (Booking-end-sched booking-2)))
-   (if (or
-        (bookings-has-hours-conflicts? booking-1 booking-2)
-        (bookings-has-minutes-conflicts? booking-1 booking-2))
+   (if (bookings-has-conflicts? booking-1 booking-2)
        "Há conflito nos horários das reservas."
        "Não há conflito nos horários das reservas.")
    "Horários formatados de forma inválida."))
@@ -212,6 +147,8 @@ que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00
   - start-sched: horário (schedule) de ínicio
   - end-sched: horário (schedule) de encerramento
 |#
+
+; Verificações
 
 (examples
  (check-equal?
@@ -265,28 +202,3 @@ que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00
    (Booking (Schedule 15 30) (Schedule 15 50)))
   "Não há conflito nos horários das reservas.")
  )
-
-(examples
- (check-equal? (validate-bookings-schedule (Booking (Schedule 10 30) (Schedule 13 0))
-                                           (Booking (Schedule 13 30) (Schedule 15 0))) "Não há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 10 30) (Schedule 13 0))
-                                           (Booking (Schedule 13 0) (Schedule 15 0))) "Não há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 10 30) (Schedule 13 0))
-                                           (Booking (Schedule 13 0) (Schedule 15 0))) "Não há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 15 20) (Schedule 15 40))
-                                           (Booking (Schedule 15 55) (Schedule 16 10))) "Não há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 8 10) (Schedule 14 30))
-                                           (Booking (Schedule 12 0) (Schedule 17 0))) "Há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 15 20) (Schedule 16 30))
-                                           (Booking (Schedule 10 0) (Schedule 15 30))) "Há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 15 20) (Schedule 15 40))
-                                           (Booking (Schedule 15 55) (Schedule 16 10))) "Não há conflito nos horários das reservas.")
-
- (check-equal? (validate-bookings-schedule (Booking (Schedule 10 0) (Schedule 15 0))
-                                           (Booking (Schedule 11 55) (Schedule 14 10))) "Há conflito nos horários das reservas."))
