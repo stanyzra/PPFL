@@ -201,3 +201,93 @@ que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00
    (Booking (Schedule 15 30) (Schedule 15 50)))
   "Não há conflito nos horários das reservas.")
  )
+
+; ########################################################################################################################################
+; ########################################################################################################################################
+
+#|
+Considere um jogo onde o personagem está em um tabuleiro (semelhante a um tabuleiro de jogo de xadrez).
+As linhas e colunas do tabuleiro são enumeradas de 1 a 10, dessa forma, é possível representar a posição (casa)
+do personagem pelo número da linha e da coluna que ele se encontra. O personagem fica virado para uma das
+direções: norte, sul, leste ou oeste. O jogador controla o personagem através de um dos seguintes comandos:
+virar a esquerda e virar a direita, que mudam a direção que o personagem está virado e avançar n casas, que faz
+o personagem avançar até n casas na direção que ele está virado.
+Projete uma função, incluindo os tipos de dados necessários, que receba como entrada o personagem do jogo e
+um comando e gere como saída o novo estado do personagem.
+Por exemplo, ao executar o comando para virar a direita, sendo que o personagem está na posição (1, 5) e virado
+para o norte, a função deve gerar como resultado o personagem na posição (1, 5) virado para o leste.
+Se o comando for para avançar duas casas, sendo que o personagem está na posição (7, 5) virado para o oeste,
+a função deve gerar como resultado o personagem na posição (7, 3) virado para o oeste.
+Dica: use papel e lápis para criar exemplos!
+|#
+
+#| Análise:
+Receber como entrada o estado atual do personagem do jogo e um comando, gerando como saída o novo estado do personagem
+do jogo. O ambiente em que o personagem se encontra é um plano cartesiano contendo o eixo horizontal (x) e o eixo vertical
+(y), admitindo que ambos eixos vão de 1 a 10. O estado do personagem é composto na sua direção (norte, sul, leste e oeste)
+e na sua posição, representado por um par ordenado (x,y) no plano cartesiano. O personagem não pode ultrapassar o limite
+do ambiente, por exemplo, se ele estiver na posição (10, x), onde x pode ser qualquer número de 1 a 10, ele não pode andar
+nenhuma casa virado para o norte.
+|#
+
+; ##############################################################################################
+
+#| Definição dos tipos de dados:
+Direção (direction) é uma estrutura de dados contendo as seguintes propriedades:
+  - Norte (north) é um valor boolean
+  - Sul (south) é um valor boolean
+  - Leste (east) é um valor boolean
+  - Oeste (west) é um valor boolean
+Se algum dos valores for #t, então o personagem está virado para a direção especificada, caso contrário,
+não. O personagem só pode estar virado para uma direção, ou seja, se uma propriedade for #t, todas as outras
+são #f.
+
+Posição (position) é uma estrutura de dados contendo as seguintes propriedades:
+  - x é um valor inteiro de 1 a 10
+  - y é um valor inteiro de 1 a 10
+
+Estado-Personagem (character-status) é uma estrutura de dados contendo as seguintes propriedades:
+  - Direção-Personagem (character-diretion) é uma estrutura do tipo Direção (direction) representando
+    a direção em que o personagem está virado.
+  - Posição-Personagem (character-position) é uma estrutura do tipo Posição (position) representando
+    a localização do personagem no ambiente.
+|#
+
+#| Especificação:
+Estado-Personagem Direção número-passos -> Estado-Personagem
+
+Recebe as duas reservas (Booking) e retorna se há ou não conflito entre os horários,
+bem como a tratativa de um formato inválido de horário. Ex.: início as 12:00 e término
+as 11:00.
+
+Assume-se que as informações providas são corretas, ou seja,
+que os horários das duas reservas estejam entre o intervalo das 8:00h às 18:00h.
+|#
+
+(define (change-character-state current-character-status new-character-direction n-step)
+  (define new-character-status (struct-copy Character-Status current-character-status [character-position (Position 1 4)]))
+  ;(define new-character-status (struct-copy Character-Status current-character-status))
+  (Position-y (Character-Status-character-position new-character-status)))
+
+(struct Direction (north south east west) #:transparent)
+#| direction representa a direção em que o personagem está virado
+  - north: boolean
+  - south: boolean
+  - east: boolean
+  - west: boolean
+|#
+
+(struct Position (x y) #:transparent)
+#| position representa a posição do personagem no ambiente
+  - x: número inteiro de 1 a 10
+  - y: número inteiro de 1 a 10
+|#
+
+(struct Character-Status (character-diretion character-position) #:transparent)
+#| character-status representa o estado do personagem no ambiente
+  - character-diretion: direção (direction) em que o personagem está virado
+  - character-position: posição (position) do personagem no ambiente
+|#
+
+(change-character-state (Character-Status (Direction #t #f #f #f) (Position 1 1)) (Direction #f #f #t #f) 2)
+
