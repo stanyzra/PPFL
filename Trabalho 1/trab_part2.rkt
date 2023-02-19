@@ -28,37 +28,92 @@ que um determinado número dentro da lista possui.
 ; ##############################################################################################
 
 #| Especificação:
-list int -> list
+list int -> int
 
-Concatena os espaços necessários para que todos os elementos da lista fiquem com o
-mesmo número de caracteres. Retorna uma lista.
+Recebe uma lista de string e o maior número de casas decimais da lista e retorna uma nova lista
+de string com todos os elementos contendo o mesmo número de caracteres.
 |#
 
-(define (append-spaces number-list higher-n-string)
-  higher-n-string)
+(define (append-spaces string-list higher-n-length)
+  (cond
+    [(empty? string-list) empty]
+    [else
+     (define actual-number-length (string-length (first string-list)))
+     (define n-characters-left (- higher-n-length actual-number-length))
+     (define new-element (string-append (first string-list) (make-string n-characters-left #\space)))
+     (cons new-element
+           (append-spaces (rest string-list) higher-n-length))
+     ]))
+
 
 #| Especificação:
-list int -> list int (?)
+list int -> int
 
-Recebe uma lista de números e o número de caracteres do primeiro da lista e retorna
-uma nova lista com os números convertidos para string e o maior número de caracteres
-da lista.
+Recebe uma lista de string e o número de casas decimais de um determinado elemento na lista,
+retornando o número de caracteres da string que possui o maior número de casas decimais.
 |#
 
-(define (convert-list number-list higher-n-string)
+(define (get-higher-n-length string-list number-length)
   (cond
-    [(empty? number-list) (append-spaces number-list higher-n-string)]
+    [(empty? string-list) number-length]
     [else
-     (define actual-string-length (string-length (number->string (first number-list))))
+     (define actual-number-length (string-length (first string-list)))
+     (get-higher-n-length
+      (rest string-list)
+      (if
+       (> actual-number-length number-length)
+       actual-number-length
+       number-length))
+     ]))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de números e retorna uma nova lista com todos os elementos convertidos
+para string.
+|#
+
+(define (cast-list-to-string number-list)
+  (cond
+    [(empty? number-list) empty]
+    [else
      (cons (number->string (first number-list))
-           (convert-list (rest number-list)
-                         (if (> higher-n-string actual-string-length) higher-n-string actual-string-length)))])
-                         ;(string-length (number->string (first number-list)))))])
+           (cast-list-to-string (rest number-list)))])
   )
 
-(struct List-Info (list higher-n-char) #:transparent)
+#| Especificação:
+list -> list
 
-(define number-list (list 1 2 33 66 884))
-(convert-list number-list (string-length (number->string (first number-list))))
-;(define converted-string-list (convert-list number-list (string-length (number->string (first number-list)))))
-;converted-string-list
+Recebe uma lista de números e retorna uma nova lista com todos os elementos convertidos
+para string.
+|#
+
+(define (convert-list number-list)
+  (define converted-string-list
+    (cast-list-to-string number-list))
+  (define higher-n-length
+    (get-higher-n-length
+     converted-string-list
+     (string-length
+      (first converted-string-list))))
+  (append-spaces converted-string-list higher-n-length))
+
+(convert-list (list 1 1 1 8000 1 1 1 1))
+
+(examples
+ (check-equal?
+  (convert-list (list 1 2 33 66 884))
+  (list "1  " "2  " "33 " "66 " "884"))
+ (check-equal?
+  (convert-list (list 4 16548 2 8))
+  (list "4    " "16548" "2    " "8    "))
+ (check-equal?
+  (convert-list (list 55555 4444 484848 123485 2))
+  (list "55555 " "4444  " "484848" "123485" "2     "))
+ (check-equal?
+  (convert-list (list 1 3 2 4 2))
+  (list "1" "3" "2" "4" "2"))
+ (check-equal?
+  (convert-list (list 1 1 1 8000 1 1 1 1))
+  (list"1   " "1   " "1   " "8000" "1   " "1   " "1   " "1   ")) 
+ )
