@@ -1,5 +1,9 @@
 #lang racket
 (require examples)
+#|
+Aluno: Stany Helberth de Souza Gomes da Silva
+RA: 112683
+|#
 
 #| Uma determinada sala de reunião pode ser usada das 8:00h às 18:00h. Cada interessado em utilizar a sala
 faz uma reserva indicando o intervalo de tempo que gostaria de utilizar a sala. Como parte de um sistema de
@@ -233,30 +237,56 @@ nenhuma casa virado para o norte.
 ; ##############################################################################################
 
 #| Definição dos tipos de dados:
-Direção (direction) é uma estrutura de dados contendo as seguintes propriedades:
-  - Norte (north) é um valor boolean
-  - Sul (south) é um valor boolean
-  - Leste (east) é um valor boolean
-  - Oeste (west) é um valor boolean
-Se algum dos valores for #t, então o personagem está virado para a direção especificada, caso contrário,
-não. O personagem só pode estar virado para uma direção, ou seja, se uma propriedade for #t, todas as outras
-são #f.
+Ação (action) é uma estrutura de dados que contém uma propriedade representada pela união de outros
+dois tipos de dados.
+  - type é uma união de estrutura de dados, podendo ser do tipo Virar-Lado (turn-sideways) ou
+Andar (walk)
 
 Posição (position) é uma estrutura de dados contendo as seguintes propriedades:
   - x é um valor inteiro de 1 a 10
   - y é um valor inteiro de 1 a 10
 
 Estado-Personagem (character-status) é uma estrutura de dados contendo as seguintes propriedades:
-  - Direção-Personagem (character-direction) é uma estrutura do tipo Direção (direction) representando
-    a direção em que o personagem está virado.
+  - Direção-Personagem (character-direction) é uma string representando a direção em que o personagem
+  está virado em relação ao ambiente.
   - Posição-Personagem (character-position) é uma estrutura do tipo Posição (position) representando
     a localização do personagem no ambiente.
+
+Virar-Lado (turn-sideways) é uma estrutura de dados contendo as seguintes propriedades:
+  - actual-direction é uma string enumerada que admite uma das direções do ambiente (norte, sul,
+    leste ou oeste).
+  - side é uma string que representa a direção em que o personagem irá virar, podendo ser esquerda ou
+    direita.
+
+Andar (walk) é uma estrutura de dados contendo as seguintes propriedades:
+  - actual-direction é uma string enumerada que admite uma das direções do ambiente (norte, sul,
+    leste ou oeste).
+  - n-steps é um int que representa o número de casas que o personagem irá andar.
 |#
 
 #| Especificação:
-Posição Direção número-passos -> Posição
+String String -> String
 
-Recebe a posição (Position) atual e a nova direção (Direction) do personagem e retorna a nova posição (Position)
+Recebe a posição atual do personagem e o lado em que ele irá virar, retornando a nova direção dependendo de qual
+lado foi escolhido.
+|#
+
+(define (set-new-character-direction actual-character-position side)
+  (cond
+    [(string=? actual-character-position "norte")
+     (if (string=? side "direita") "leste" "oeste")]
+    [(string=? actual-character-position "leste")
+     (if (string=? side "direita") "sul" "norte")]
+    [(string=? actual-character-position "sul")
+     (if (string=? side "direita") "oeste" "leste")]
+    [else
+     (if (string=? side "direita") "norte" "sul")]
+    ))
+
+#| Especificação:
+Posição string int -> Posição
+
+Recebe a posição (Position) atual e a direção do personagem e retorna a nova posição (Position)
 somada com o número de passos recebido. Se a direção for leste ou oeste, a soma será feita no eixo x,
 caso contrário, y.
 
@@ -264,15 +294,15 @@ Assume-se que as informações providas são corretas, ou seja, que o personagem
 o limite do ambiente (0 < x,y <= 10).
 |#
 
-(define (set-new-character-position current-character-position new-character-direction n-steps)
+(define (set-new-character-position current-character-position character-direction n-steps)
   (cond
-    [(Direction-north new-character-direction)
+    [(string=? character-direction "norte")
      (struct-copy Position current-character-position
                   [y (+ (Position-y current-character-position) n-steps)])]
-    [(Direction-south new-character-direction)
+    [(string=? character-direction "sul")
      (struct-copy Position current-character-position
                   [y (- (Position-y current-character-position) n-steps)])]
-    [(Direction-east new-character-direction)
+    [(string=? character-direction "leste")
      (struct-copy Position current-character-position
                   [x (+ (Position-x current-character-position) n-steps)])]
     [else
@@ -281,62 +311,62 @@ o limite do ambiente (0 < x,y <= 10).
     ))
 
 #| Especificação:
-Estado-Personagem Direção número-passos -> Estado-Personagem
+Estado-Personagem Ação -> Estado-Personagem
 
-Recebe o estado atual do personagem (Character-Status), a direção (Direction) futura e o número de passos
-que o personagem deve andar, retornando o novo estado do personagem (Character-Status)
+Recebe o estado atual do personagem (Character-Status) e a ação (Action), retornando o novo
+estado do personagem dependendo do tipo da ação escolhida. Se a ação for mudar de direção
+(Turn-Sideways), ele poderá virar a esquerda ou a direita da posição atual. Caso a ação for andar
+(Walk), ele poderá andar um determinado número de casas passado por parâmetro.
 
 Assume-se que as informações providas são corretas, ou seja, que o personagem não irá ultrapassar
 o limite do ambiente (0 < x,y <= 10).
 |#
 
-(define (change-character-state current-character-status new-character-direction n-steps)
-  (define new-character-position
-    (set-new-character-position
-     (Character-Status-character-position current-character-status)
-     new-character-direction
-     n-steps))
-  (define new-character-status
-    (struct-copy
-     Character-Status current-character-status
-     [character-direction
-      (Direction
-       (Direction-north new-character-direction)
-       (Direction-south new-character-direction)
-       (Direction-east new-character-direction)
-       (Direction-west new-character-direction))]
-     [character-position
-      (Position
-       (Position-x new-character-position)
-       (Position-y new-character-position))]
-     ))
-  new-character-status)
-
+(define (change-character-state current-character-status character-action)
+  (cond
+    [(Turn-Sideways? character-action)
+     (struct-copy
+      Character-Status current-character-status
+      [character-direction
+       (set-new-character-direction
+        (Turn-Sideways-actual-direction character-action)
+        (Turn-Sideways-side character-action))]
+      )]
+    [(Walk? character-action)
+     (define new-character-position
+       (set-new-character-position
+        (Character-Status-character-position current-character-status)
+        (Walk-actual-direction character-action)
+        (Walk-n-steps character-action)))
+     (struct-copy
+      Character-Status current-character-status
+      [character-position
+       (Position
+        (Position-x new-character-position)
+        (Position-y new-character-position))]
+      )
+     ]
+    ))
 
 (struct Action (type) #:transparent)
 #| action representa a ação do personagem, ou seja, virar ou andar.
 
-  - type: String | Position
+  - type: Turn-Sideways | Walk
 
-  O atributo type pode é uma união de dois casos, no qual caso seu tipo
-  seja string, ele poderá assumir um dos seguintes valores:
-
-  - "Norte"
-  - "Sul"
-  - "Leste"
-  - "Oeste"
-
-  Caso não seja uma string, ele será do tipo Position, representando a
-  posição do personagem no ambiente.
+  O atributo type pode é uma união de dois casos, podendo ser
+  do tipo Turn-Sideways (virar) ou Walk (andar).
 |#
 
+(struct Turn-Sideways (actual-direction side) #:transparent)
+#| turn-sideways representa a direção em que o personagem irá virar
+  - actual-direction: direção em que o personagem está virado
+  - side: lado para virar (esquerda ou direita)
+|#
 
-(struct Direction (north south east west) #:transparent)
-#| direction representa a direção em que o personagem está virado
-  - north: boolean
-  - south: boolean
-  - east: boolean
-  - west: boolean
+(struct Walk (actual-direction n-steps) #:transparent)
+#| walk representa o número de casas em que o jogador irá avançar 
+  - actual-direction: direção em que o personagem está virado
+  - n-steps: número de passos a ser andado
 |#
 
 (struct Position (x y) #:transparent)
@@ -347,64 +377,63 @@ o limite do ambiente (0 < x,y <= 10).
 
 (struct Character-Status (character-direction character-position) #:transparent)
 #| character-status representa o estado do personagem no ambiente
-  - character-direction: direção (direction) em que o personagem está virado
+  - character-direction: direção em que o personagem está virado
   - character-position: posição (position) do personagem no ambiente
 |#
 
 ; Verificações
 
-
 (examples
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 1 1))
-   (Direction #f #f #t #f) 1)
-  (Character-Status (Direction #f #f #t #f) (Position 2 1)))
+   (Character-Status "norte" (Position 1 1))
+   (Walk "norte" 1))
+  (Character-Status "norte" (Position 1 2)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 5 3))
-   (Direction #t #f #f #f) 4)
-  (Character-Status (Direction #t #f #f #f) (Position 5 7)))
+   (Character-Status "leste" (Position 2 4))
+   (Walk "leste" 4))
+  (Character-Status "leste" (Position 6 4)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 3 10))
-   (Direction #f #t #f #f) 9)
-  (Character-Status (Direction #f #t #f #f) (Position 3 1)))
+   (Character-Status "sul" (Position 5 5))
+   (Walk "sul" 4))
+  (Character-Status "sul" (Position 5 1)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 1 3))
-   (Direction #f #f #t #f) 9)
-  (Character-Status (Direction #f #f #t #f) (Position 10 3)))
+   (Character-Status "oeste" (Position 4 8))
+   (Walk "oeste" 1))
+  (Character-Status "oeste" (Position 3 8)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 6 2))
-   (Direction #f #f #f #t) 3)
-  (Character-Status (Direction #f #f #f #t) (Position 3 2)))
+   (Character-Status "norte" (Position 1 1))
+   (Turn-Sideways "norte" "direita"))
+  (Character-Status "leste" (Position 1 1)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #f #f #f #t) (Position 5 5))
-   (Direction #f #f #t #f) 0)
-  (Character-Status (Direction #f #f #t #f) (Position 5 5)))
+   (Character-Status "sul" (Position 4 6))
+   (Turn-Sideways "sul" "esquerda"))
+  (Character-Status "leste" (Position 4 6)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #f #t #f #t) (Position 5 10))
-   (Direction #f #t #f #f) 9)
-  (Character-Status (Direction #f #t #f #f) (Position 5 1)))
+   (Character-Status "oeste" (Position 4 8))
+   (Turn-Sideways "oeste" "direita"))
+  (Character-Status "norte" (Position 4 8)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #f #f #t #f) (Position 2 3))
-   (Direction #t #f #f #f) 5)
-  (Character-Status (Direction #t #f #f #f) (Position 2 8)))
+   (Character-Status "norte" (Position 8 6))
+   (Turn-Sideways "norte" "esquerda"))
+  (Character-Status "oeste" (Position 8 6)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #t #f #f #f) (Position 10 5))
-   (Direction #t #f #f #f) 5)
-  (Character-Status (Direction #t #f #f #f) (Position 10 10)))
+   (Character-Status "sul" (Position 10 10))
+   (Turn-Sideways "sul" "direita"))
+  (Character-Status "oeste" (Position 10 10)))
  (check-equal?
   (change-character-state
-   (Character-Status (Direction #f #f #t #f) (Position 4 6))
-   (Direction #f #f #f #t) 2)
-  (Character-Status (Direction #f #f #f #t) (Position 2 6)))
+   (Character-Status "oeste" (Position 1 7))
+   (Turn-Sideways "oeste" "esquerda"))
+  (Character-Status "sul" (Position 1 7)))
  )
 
 ; ########################################################################################################################################
@@ -523,5 +552,243 @@ caracteres para cada elemento.
  (check-equal?
   (convert-list (list 1 1 1 8000 1 1 1 1))
   (list"1   " "1   " "1   " "8000" "1   " "1   " "1   " "1   ")) 
+ )
+
+; ########################################################################################################################################
+; ########################################################################################################################################
+
+#|
+Uma string é palíndromo se as letras da string na ordem normal ou de trás para frente são as mesmas (ignorando
+diferenças entre minúsculas e maiúsculas e sinais diacríticos). Projete uma função que verifique se uma string
+sem os caracteres de pontuação é palíndromo. Assuma que a string seja composta apenas de letras do alfabeto
+(modificadas ou não com sinais diacríticos), números e símbolos usados na Língua Portuguesa. Você pode usar
+a função (string-split s "") para gerar uma lista com os elementos da string s e processar esses elementos,
+dessa forma você não precisa trabalhar com caracteres (que não vimos em sala), apenas com strings.
+|#
+
+#| Análise:
+Verificar se uma string é palíndromo, ou seja, se o início até a metade e a metade até o fim da string são
+iguais. Essa string pode contém letras do alfabeto, números e símbolos usados na Língua Portuguesa. Pode-se
+adotar a estratégia de verificar se a posição início + 1 até o fim - 1 é palíndromo, recursivamente, e por
+fim, verificar se o elemento da primeira posição é igual a última.
+|#
+
+; ##############################################################################################
+
+#| Definição dos tipos de dados:
+
+letras-minusculas (lower-letters) é uma lista contendo todas as letras minúsculas do alfabeto da
+Língua Portuguesa.
+
+|#
+
+; ##############################################################################################
+
+#| Especificação:
+string list int -> boolean
+Recebe uma string, uma lista contendo o alfabeto mínusculo e um controlador. Verifica se a string
+passada é um símbolo ou um espaço. Se for, o controlador é incrementado em 1, caso contrário. Ao final
+retorna true caso o controlador for maior que 1, significando a str passada por parâmetro está contida
+na lista de alfabeto.
+|#
+
+(define (is-alphabet-element? str alphabet number-matches)
+  (cond
+    [(empty? alphabet) (> number-matches 0)] 
+    [(string=? (first alphabet) str) (is-alphabet-element? str (rest alphabet) (+ number-matches 1))]
+    [else
+     (is-alphabet-element? str (rest alphabet) number-matches)]))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de string e remove os espaços e símbolos especiais
+|#
+
+(define (normalize-string-list string-list)
+  (cond
+    [(empty? string-list) empty]
+    [else
+     (if (is-alphabet-element? (first string-list) lower-letters-and-numbers 0)
+         (cons (first string-list) (normalize-string-list (rest string-list)))
+         (normalize-string-list (rest string-list))
+         )]))
+
+#| Especificação:
+string -> string
+
+Recebe uma string de uma letra do alfabeto e remove o caracter especial dela.
+|#
+
+(define (remove-special-character-string str)
+  (cond
+    [(or (string=? str "á")
+         (string=? str "à")
+         (string=? str "â")
+         (string=? str "ã"))
+     "a"]
+    [(or (string=? str "é")
+         (string=? str "è")
+         (string=? str "ê"))
+     "e"]
+    [(or (string=? str "í")
+         (string=? str "ì")
+         (string=? str "î"))
+     "i"]
+    [(or (string=? str "ó")
+         (string=? str "ò")
+         (string=? str "ô")
+         (string=? str "õ"))
+     "o"]
+    [(or (string=? str "ú")
+         (string=? str "ù")
+         (string=? str "û"))
+     "u"]
+    [(string=? str "ç") "c"] 
+    [else str]))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de string e remove os caracteres especiais dos elementos.
+|#
+
+(define (remove-special-character-list string-list)
+  (cond
+    [(empty? string-list) empty]
+    [else
+     (cons
+      (remove-special-character-string (first string-list))
+      (remove-special-character-list (rest string-list)))]))
+
+
+#| Especificação:
+string -> string
+
+Recebe uma string de uma letra do alfabeto e retorna a mesma letra em minúsculo, além de tratar o
+caso da letra "ç".
+|#
+
+(define (to-lower-string str)
+  (cond
+    [(string=? str "A") "a"]
+    [(string=? str "B") "b"]
+    [(string=? str "C") "c"]
+    [(string=? str "Ç") "c"]
+    [(string=? str "D") "d"]
+    [(string=? str "E") "e"]
+    [(string=? str "F") "f"]
+    [(string=? str "G") "g"]
+    [(string=? str "H") "h"]
+    [(string=? str "I") "i"]
+    [(string=? str "J") "j"]
+    [(string=? str "K") "k"]
+    [(string=? str "L") "l"]
+    [(string=? str "M") "m"]
+    [(string=? str "N") "n"]
+    [(string=? str "O") "o"]
+    [(string=? str "P") "p"]
+    [(string=? str "Q") "q"]
+    [(string=? str "R") "r"]
+    [(string=? str "S") "s"]
+    [(string=? str "T") "t"]
+    [(string=? str "U") "u"]
+    [(string=? str "V") "v"]
+    [(string=? str "W") "w"]
+    [(string=? str "X") "x"]
+    [(string=? str "Y") "y"]
+    [(string=? str "Z") "z"]
+    [else str]))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de string e retorna a lista em lower case, ou seja, com todos os elementos em minúsculo.
+|#
+
+(define (to-lower-list string-list)
+  (cond
+    [(empty? string-list) empty]
+    [else
+     (cons
+      (to-lower-string (first string-list))
+      (to-lower-list (rest string-list)))]))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de string e a retorna sem o último elemento.
+|#
+
+(define (remove-last-element string-list)
+  (cond
+    [(empty? string-list) empty]
+    [(empty? (rest string-list)) empty]
+    [else
+     (cons (first string-list) (remove-last-element (rest string-list)))])
+  )
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de string e retorna apenas a sub-lista do intervalo início + 1 até fim - 1.
+|#
+
+(define (without-extremes string-list)
+  (remove-last-element (rest string-list)))
+
+#| Especificação:
+list -> boolean
+
+Recebe uma lista de string e retorna true caso seja palíndromo e false caso contrário.
+|#
+
+(define (is-palindrome? string-list)
+  (cond
+    [(empty? string-list) #t]
+    [(empty? (rest string-list)) #t]
+    [else (and (equal? (first string-list) (last string-list))
+               (is-palindrome? (without-extremes string-list)))]))
+
+#| Especificação:
+string -> boolean
+
+Recebe uma string, transforma ela em uma lista de string normalizada e verifica
+se é palíndromo ou não.
+|#
+
+(define (process-string str)
+  (define normalized-list (normalize-string-list (remove-special-character-list (to-lower-list (string-split str "")))))
+  (is-palindrome? normalized-list))
+
+
+(define lower-letters-and-numbers (list "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
+                                        "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"
+                                        "w" "x" "y" "z" "1" "2" "3" "4" "5" "6" "7"
+                                        "8" "9" "0"))
+
+; Verificações
+
+(examples
+ (check-equal?
+  (process-string "Aí, Lima falou: 'Olá, família!'.") #t)
+ (check-equal?
+  (process-string "Amo Omã. Se Roma me tem amores, amo Omã!") #t)
+ (check-equal?
+  (process-string "Luza Rocelina, a namorada do Manuel, leu na moda da romana: 'anil é cor azul'.") #t)
+ (check-equal?
+  (process-string "Aibofobia") #t)
+ (check-equal?
+  (process-string "ab123321ba") #t)
+ (check-equal?
+  (process-string "") #t)
+ (check-equal?
+  (process-string "Definitivamente não é um palíndromo.") #f)
+ (check-equal?
+  (process-string "E então ele disse: 'eu não sei o que é um palíndromo!'") #f)
+ (check-equal?
+  (process-string "12") #f)
+ (check-equal?
+  (process-string "2Aibofobia1") #f)
  )
 
