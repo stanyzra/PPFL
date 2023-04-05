@@ -12,51 +12,23 @@ dessa forma você não precisa trabalhar com caracteres (que não vimos em sala)
 
 #| Análise:
 Verificar se uma string é palíndromo, ou seja, se o início até a metade e a metade até o fim da string são
-iguais. Essa string pode contém letras do alfabeto, números e símbolos usados na Língua Portuguesa. Pode-se
-adotar a estratégia de verificar se a posição início + 1 até o fim - 1 é palíndromo, recursivamente, e por
-fim, verificar se o elemento da primeira posição é igual a última.
+iguais. Essa string pode contém letras do alfabeto, números e símbolos usados na Língua Portuguesa. Admitindo
+que a estratégia de analisar a lista sem extremos seria mais complicado de implementar ao utilizar funções de
+alta ordem, escolheu-se utilizar a estratégia de verificar se a lista de strings (normalizada, ou seja, contendo
+apenas letras e números) é exatamente igual a ao reverso dela mesma. Assim, é possível implementar essa solução
+ao fazer o uso de funções de alta ordem como map, filter, member e foldl.
 |#
 
 ; ##############################################################################################
 
 #| Definição dos tipos de dados:
 
-letras-minusculas (lower-letters) é uma lista contendo todas as letras minúsculas do alfabeto da
-Língua Portuguesa.
+letras-minusculas-e-numeros (lower-letters-and-numbers) é uma lista contendo todas as letras minúsculas do alfabeto da
+Língua Portuguesa, bem como números de 0 a 9.
 
 |#
 
 ; ##############################################################################################
-
-#| Especificação:
-string list int -> boolean
-Recebe uma string, uma lista contendo o alfabeto mínusculo e um controlador. Verifica se a string
-passada é um símbolo ou um espaço. Se for, o controlador é incrementado em 1, caso contrário. Ao final
-retorna true caso o controlador for maior que 1, significando a str passada por parâmetro está contida
-na lista de alfabeto.
-|#
-
-(define (is-alphabet-element? str alphabet number-matches)
-  (cond
-    [(empty? alphabet) (> number-matches 0)] 
-    [(string=? (first alphabet) str) (is-alphabet-element? str (rest alphabet) (+ number-matches 1))]
-    [else
-     (is-alphabet-element? str (rest alphabet) number-matches)]))
-
-#| Especificação:
-list -> list
-
-Recebe uma lista de string e remove os espaços e símbolos especiais
-|#
-
-(define (normalize-string-list string-list)
-  (cond
-    [(empty? string-list) empty]
-    [else
-     (if (is-alphabet-element? (first string-list) lower-letters-and-numbers 0)
-         (cons (first string-list) (normalize-string-list (rest string-list)))
-         (normalize-string-list (rest string-list))
-         )]))
 
 #| Especificação:
 string -> string
@@ -90,21 +62,6 @@ Recebe uma string de uma letra do alfabeto e remove o caracter especial dela.
      "u"]
     [(string=? str "ç") "c"] 
     [else str]))
-
-#| Especificação:
-list -> list
-
-Recebe uma lista de string e remove os caracteres especiais dos elementos.
-|#
-
-(define (remove-special-character-list string-list)
-  (cond
-    [(empty? string-list) empty]
-    [else
-     (cons
-      (remove-special-character-string (first string-list))
-      (remove-special-character-list (rest string-list)))]))
-
 
 #| Especificação:
 string -> string
@@ -145,93 +102,52 @@ caso da letra "ç".
     [else str]))
 
 #| Especificação:
-list -> list
-
-Recebe uma lista de string e retorna a lista em lower case, ou seja, com todos os elementos em minúsculo.
-|#
-
-(define (to-lower-list string-list)
-  (cond
-    [(empty? string-list) empty]
-    [else
-     (cons
-      (to-lower-string (first string-list))
-      (to-lower-list (rest string-list)))]))
-
-#| Especificação:
-list -> list
-
-Recebe uma lista de string e a retorna sem o último elemento.
-|#
-
-(define (remove-last-element string-list)
-  (cond
-    [(empty? string-list) empty]
-    [(empty? (rest string-list)) empty]
-    [else
-     (cons (first string-list) (remove-last-element (rest string-list)))])
-  )
-
-#| Especificação:
-list -> list
-
-Recebe uma lista de string e retorna apenas a sub-lista do intervalo início + 1 até fim - 1.
-|#
-
-(define (without-extremes string-list)
-  (remove-last-element (rest string-list)))
-
-#| Especificação:
-list -> boolean
-
-Recebe uma lista de string e retorna true caso seja palíndromo e false caso contrário.
-|#
-
-(define (is-palindrome? string-list)
-  (cond
-    [(empty? string-list) #t]
-    [(empty? (rest string-list)) #t]
-    [else (and (equal? (first string-list) (last string-list))
-               (is-palindrome? (without-extremes string-list)))]))
-
-#| Especificação:
 string -> boolean
 
 Recebe uma string, transforma ela em uma lista de string normalizada e verifica
 se é palíndromo ou não.
 |#
 
-(define (process-string str)
-  (define normalized-list (normalize-string-list (remove-special-character-list (to-lower-list (string-split str "")))))
-  (is-palindrome? normalized-list))
-
+(define (process-string-higher-order str)
+  ; transforma a string em uma lista de strings
+  (define string-list (string-split str ""))
+  ; mapeia a lista e devolve uma nova lista com as letras em lowercase
+  (define lower-string-list (map to-lower-string string-list))
+  ; mapeia a lista e devolve uma nova lista sem caracteres especiais
+  (define removed-special-list (map remove-special-character-string lower-string-list))
+  ; filtra a lista e normaliza a lista, removendo qualquer caractere que não seja uma letra ou um número
+  (define normalized-list (filter
+                           ; função anônima que retorna #f caso o elemento verificado não seja uma letra ou um número
+                           (lambda (list-element) 
+                                    (member list-element lower-letters-and-numbers)) removed-special-list))
+  ; verifica se a lista normalizada é igual ao inverso dela mesma. Se for, é um palíndromo.
+  (equal? normalized-list (foldl cons empty normalized-list)))
 
 (define lower-letters-and-numbers (list "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
                                         "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"
                                         "w" "x" "y" "z" "1" "2" "3" "4" "5" "6" "7"
                                         "8" "9" "0"))
-
 ; Verificações
 
 (examples
  (check-equal?
-  (process-string "Aí, Lima falou: 'Olá, família!'.") #t)
+  (process-string-higher-order "Aí, Lima falou: 'Olá, família!'.") #t)
  (check-equal?
-  (process-string "Amo Omã. Se Roma me tem amores, amo Omã!") #t)
+  (process-string-higher-order "Amo Omã. Se Roma me tem amores, amo Omã!") #t)
  (check-equal?
-  (process-string "Luza Rocelina, a namorada do Manuel, leu na moda da romana: 'anil é cor azul'.") #t)
+  (process-string-higher-order "Luza Rocelina, a namorada do Manuel, leu na moda da romana: 'anil é cor azul'.") #t)
  (check-equal?
-  (process-string "Aibofobia") #t)
+  (process-string-higher-order "Aibofobia") #t)
  (check-equal?
-  (process-string "ab123321ba") #t)
+  (process-string-higher-order "ab123321ba") #t)
  (check-equal?
-  (process-string "") #t)
+  (process-string-higher-order "") #t)
  (check-equal?
-  (process-string "Definitivamente não é um palíndromo.") #f)
+  (process-string-higher-order "Definitivamente não é um palíndromo.") #f)
  (check-equal?
-  (process-string "E então ele disse: 'eu não sei o que é um palíndromo!'") #f)
+  (process-string-higher-order "E então ele disse: 'eu não sei o que é um palíndromo!'") #f)
  (check-equal?
-  (process-string "12") #f)
+  (process-string-higher-order "12") #f)
  (check-equal?
-  (process-string "2Aibofobia1") #f)
+  (process-string-higher-order "2Aibofobia1") #f)
  )

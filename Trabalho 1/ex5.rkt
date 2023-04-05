@@ -1,0 +1,114 @@
+#lang racket
+(require examples)
+
+#|
+Projete uma função que receba como entrada uma lista de números e produza uma lista com os números
+convertidos para string de maneira que todas as strings tenham a mesma quantidade de caracteres (use espaço
+para completar os números se necessário).
+|#
+
+#|
+Análise:
+Projetar um programa que transforme uma lista de números em uma lista de string, fazendo com que todas as
+strings tenham a mesma quantidade de caracteres. Pode-se adotar a estratégia de procurar o maior número na
+lista e usa-lo como base para completar o resto das strings, preenchendo as casas decimais inexistentes com
+espaço. Além disso, é interessante o uso de acumuladores para situações onde o processamento de uma lista
+envolve a interação dos elementos da lista. Dessa forma, pode-se utilizar a estratégia de acumuladores no
+momento de procurar pelo elemento cujo número de caracteres é o maior da lista.
+|#
+
+; ##############################################################################################
+
+#| Definição dos tipos de dados:
+Lista-Numeros (number-list) é uma lista contendo números.
+
+Lista-String-Convertida (converted-string-list) é uma lista contendo os números da Lista-Numeros
+(number-list) em formato string, com os espaços preenchidos dependendo do número de casas decimais
+que um determinado número dentro da lista possui.
+|#
+
+; ##############################################################################################
+
+#| Especificação:
+list int -> list
+
+Recebe uma lista de string e o maior número de casas decimais da lista e retorna uma nova lista
+de string com todos os elementos contendo o mesmo número de caracteres.
+|#
+
+(define (append-spaces string-list higher-n-length)
+  (cond
+    [(empty? string-list) empty]
+    [else
+     (define actual-number-length (string-length (first string-list)))
+     (define n-characters-left (- higher-n-length actual-number-length))
+     (define new-element (string-append (first string-list) (make-string n-characters-left #\space)))
+     (cons new-element
+           (append-spaces (rest string-list) higher-n-length))
+     ]))
+
+#| Especificação:
+list -> int
+
+Recebe uma lista de strings e retorna o número de caracteres do maior
+elemento da lista, utilizando acumuladores.
+|#
+
+(define (get-higher-n-length-acc lst0)
+  ;; acc - o maior número de caracteres de um elemento já visitado
+  (define (iter lst acc)
+    (cond
+      [(empty? lst) acc]
+      [else (iter (rest lst)
+                  (if (> (string-length (first lst)) acc)
+                      (string-length (first lst))
+                      acc))]))
+  (iter lst0 0))
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de números e retorna uma nova lista com todos os elementos convertidos
+para string.
+|#
+
+(define (cast-list-to-string number-list)
+  (cond
+    [(empty? number-list) empty]
+    [else
+     (cons (number->string (first number-list))
+           (cast-list-to-string (rest number-list)))])
+  )
+
+#| Especificação:
+list -> list
+
+Recebe uma lista de números e retorna uma nova lista com todos os elementos convertidos
+para string.
+|#
+
+(define (convert-list number-list)
+  (define converted-string-list
+    (cast-list-to-string number-list))
+  (define higher-n-length
+    (get-higher-n-length-acc
+     converted-string-list))
+  (append-spaces converted-string-list higher-n-length))
+
+(examples
+ (check-equal?
+  (convert-list (list 1 2 33 66 884))
+  (list "1  " "2  " "33 " "66 " "884"))
+ (check-equal?
+  (convert-list (list 4 16548 2 8))
+  (list "4    " "16548" "2    " "8    "))
+ (check-equal?
+  (convert-list (list 55555 4444 484848 123485 2))
+  (list "55555 " "4444  " "484848" "123485" "2     "))
+ (check-equal?
+  (convert-list (list 1 3 2 4 2))
+  (list "1" "3" "2" "4" "2"))
+ (check-equal?
+  (convert-list (list 1 1 1 8000 1 1 1 1))
+  (list"1   " "1   " "1   " "8000" "1   " "1   " "1   " "1   ")) 
+ )
